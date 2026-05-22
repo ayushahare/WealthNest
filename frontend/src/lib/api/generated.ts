@@ -988,6 +988,45 @@ type BRSummary = {
     ((Currency_Output | null) | Array<Currency_Output | null>)
     | undefined;
 };
+type BankStatementSummaryResponse = {
+  bank_name: string;
+  account_name: string;
+  rows_processed: number;
+  /**
+   * @pattern ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+   */
+  total_expense: string;
+  /**
+   * @pattern ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+   */
+  total_income: string;
+  /**
+   * @pattern ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+   */
+  net_change: string;
+  current_balance?:
+    | (
+        | /**
+         * @pattern ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+         */
+        (string | null)
+        | Array<
+            /**
+             * @pattern ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+             */
+            string | null
+          >
+      )
+    | undefined;
+  categories?: Array<BankCategorySummary> | undefined;
+};
+type BankCategorySummary = {
+  category: string;
+  /**
+   * @pattern ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+   */
+  total_expense: string;
+};
 type CountryListResponse = {
   items?: /**
    * List of items
@@ -2690,6 +2729,116 @@ type ValidationError = {
   input?: unknown | undefined;
   ctx?: {} | undefined;
 };
+type NomineeAccessRead = {
+  /**
+   * Username of the account holder
+   */
+  account_holder_username: string;
+  /**
+   * Nominee email tied to the token
+   */
+  nominee_email: string;
+  access_scope?: /**
+   * Granted nominee access scope
+   *
+   * @default "read_only"
+   */
+  string | undefined;
+  /**
+   * Token expiration timestamp
+   */
+  expires_at: string;
+  last_activity_at?:
+    | /**
+     * Last authenticated activity
+     */
+    ((string | null) | Array<string | null>)
+    | undefined;
+  /**
+   * Configured inactivity threshold value
+   *
+   * @minimum 1
+   */
+  nominee_threshold_days: number;
+  /**
+   * Configured inactivity threshold unit
+   *
+   * @enum days, hours, minutes, seconds
+   */
+  nominee_threshold_unit: "days" | "hours" | "minutes" | "seconds";
+  /**
+   * Number of brokers visible in nominee summary
+   *
+   * @minimum 0
+   */
+  broker_count: number;
+  broker_names?: /**
+   * Broker names visible in nominee summary
+   */
+  Array<string> | undefined;
+  banking_details?: /**
+   * Read-only per-broker banking balances
+   */
+  Array<NomineeBankingBrokerRead> | undefined;
+  account_cash_totals?: /**
+   * Aggregated cash balances across all visible broker accounts
+   */
+  Array<NomineeCashBalanceRead> | undefined;
+  asset_holdings?: /**
+   * Read-only per-broker asset holdings
+   */
+  Array<NomineeAssetHoldingRead> | undefined;
+};
+type NomineeBankingBrokerRead = {
+  /**
+   * Broker ID
+   */
+  broker_id: number;
+  /**
+   * Broker name
+   */
+  broker_name: string;
+  cash_balances?: /**
+   * Cash balances grouped by currency
+   */
+  Array<NomineeCashBalanceRead> | undefined;
+};
+type NomineeCashBalanceRead = {
+  /**
+   * Currency code (ISO 4217)
+   */
+  currency: string;
+  /**
+   * Cash balance amount as string
+   */
+  amount: string;
+};
+type NomineeAssetHoldingRead = {
+  /**
+   * Broker ID
+   */
+  broker_id: number;
+  /**
+   * Broker name
+   */
+  broker_name: string;
+  /**
+   * Asset ID
+   */
+  asset_id: number;
+  /**
+   * Asset display name
+   */
+  asset_name: string;
+  /**
+   * Held quantity as string
+   */
+  quantity: string;
+  /**
+   * Asset currency code
+   */
+  asset_currency: string;
+};
 type SystemInfoResponse = {
   app_version: string;
   python_version: string;
@@ -3223,7 +3372,33 @@ const UpdateProfileResponse: z.ZodType<UpdateProfileResponse> = z
     message: z.string().optional().default("Profile updated successfully"),
   })
   .passthrough();
-const NomineeAccessRead = z
+const NomineeCashBalanceRead: z.ZodType<NomineeCashBalanceRead> = z
+  .object({
+    currency: z.string().describe("Currency code (ISO 4217)"),
+    amount: z.string().describe("Cash balance amount as string"),
+  })
+  .passthrough();
+const NomineeBankingBrokerRead: z.ZodType<NomineeBankingBrokerRead> = z
+  .object({
+    broker_id: z.number().int().describe("Broker ID"),
+    broker_name: z.string().describe("Broker name"),
+    cash_balances: z
+      .array(NomineeCashBalanceRead)
+      .describe("Cash balances grouped by currency")
+      .optional(),
+  })
+  .passthrough();
+const NomineeAssetHoldingRead: z.ZodType<NomineeAssetHoldingRead> = z
+  .object({
+    broker_id: z.number().int().describe("Broker ID"),
+    broker_name: z.string().describe("Broker name"),
+    asset_id: z.number().int().describe("Asset ID"),
+    asset_name: z.string().describe("Asset display name"),
+    quantity: z.string().describe("Held quantity as string"),
+    asset_currency: z.string().describe("Asset currency code"),
+  })
+  .passthrough();
+const NomineeAccessRead: z.ZodType<NomineeAccessRead> = z
   .object({
     account_holder_username: z
       .string()
@@ -3258,6 +3433,18 @@ const NomineeAccessRead = z
     broker_names: z
       .array(z.string())
       .describe("Broker names visible in nominee summary")
+      .optional(),
+    banking_details: z
+      .array(NomineeBankingBrokerRead)
+      .describe("Read-only per-broker banking balances")
+      .optional(),
+    account_cash_totals: z
+      .array(NomineeCashBalanceRead)
+      .describe("Aggregated cash balances across all visible broker accounts")
+      .optional(),
+    asset_holdings: z
+      .array(NomineeAssetHoldingRead)
+      .describe("Read-only per-broker asset holdings")
       .optional(),
   })
   .passthrough();
@@ -3375,6 +3562,27 @@ const UserSearchItem: z.ZodType<UserSearchItem> = z.object({
 const UserSearchResponse: z.ZodType<UserSearchResponse> = z
   .object({ items: z.array(UserSearchItem).describe("List of items") })
   .partial();
+const Body_preview_bank_statement_api_v1_banking_statements_preview_post = z
+  .object({ file: z.string().describe("Bank statement in CSV format") })
+  .passthrough();
+const BankCategorySummary: z.ZodType<BankCategorySummary> = z
+  .object({
+    category: z.string(),
+    total_expense: z.string().regex(/^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$/),
+  })
+  .passthrough();
+const BankStatementSummaryResponse: z.ZodType<BankStatementSummaryResponse> = z
+  .object({
+    bank_name: z.string(),
+    account_name: z.string(),
+    rows_processed: z.number().int(),
+    total_expense: z.string().regex(/^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$/),
+    total_income: z.string().regex(/^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$/),
+    net_change: z.string().regex(/^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$/),
+    current_balance: z.union([z.string(), z.null()]).optional(),
+    categories: z.array(BankCategorySummary).optional(),
+  })
+  .passthrough();
 const FXProviderInfo = z
   .object({
     code: z.string().describe("Provider code (e.g., ECB, FED, BOE, SNB)"),
@@ -5735,6 +5943,9 @@ export const schemas = {
   ChangePasswordResponse,
   UpdateProfileRequest,
   UpdateProfileResponse,
+  NomineeCashBalanceRead,
+  NomineeBankingBrokerRead,
+  NomineeAssetHoldingRead,
   NomineeAccessRead,
   UserSettingsUpdate,
   GlobalSettingRead,
@@ -5752,6 +5963,9 @@ export const schemas = {
   exclude_broker_id,
   UserSearchItem,
   UserSearchResponse,
+  Body_preview_bank_statement_api_v1_banking_statements_preview_post,
+  BankCategorySummary,
+  BankStatementSummaryResponse,
   FXProviderInfo,
   FXPairSourceItem,
   FXPairSourcesResponse,
@@ -6869,6 +7083,39 @@ Returns current implementation status.`,
   },
   {
     method: "post",
+    path: "/api/v1/banking/statements/preview",
+    alias: "preview_bank_statement_api_v1_banking_statements_preview_post",
+    requestFormat: "form-data",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z
+          .object({ file: z.string().describe("Bank statement in CSV format") })
+          .passthrough(),
+      },
+      {
+        name: "bank_name",
+        type: "Query",
+        schema: z.string().optional().default("My Bank"),
+      },
+      {
+        name: "account_name",
+        type: "Query",
+        schema: z.string().optional().default("Primary Account"),
+      },
+    ],
+    response: BankStatementSummaryResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "post",
     path: "/api/v1/brokers",
     alias: "create_brokers_api_v1_brokers_post",
     description: `Create multiple brokers.
@@ -7359,18 +7606,6 @@ and supported file extensions.`,
     response: z.array(BRIMPluginInfo),
   },
   {
-    method: "get",
-    path: "/api/v1/brokers/import/sample-reports/coinbase-add-assets",
-    alias:
-      "download_coinbase_sample_report_api_v1_brokers_import_sample_reports_coinbase_add_assets_get",
-    description: `Download a ready-to-import Coinbase sample CSV.
-
-Useful for quickly testing asset import flow.
-Requires authentication.`,
-    requestFormat: "json",
-    response: z.unknown(),
-  },
-  {
     method: "post",
     path: "/api/v1/brokers/import/upload",
     alias: "upload_file_api_v1_brokers_import_upload_post",
@@ -7726,6 +7961,62 @@ Returns:
       },
     ],
     response: FXDeletePairSourcesResponse,
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/market/yahoo/history/:symbol",
+    alias: "get_yahoo_history_api_v1_market_yahoo_history__symbol__get",
+    description: `Fetch historical close prices for a symbol from Yahoo Finance.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "symbol",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "period_days",
+        type: "Query",
+        schema: z
+          .number()
+          .int()
+          .gte(7)
+          .lte(730)
+          .describe("Number of days back from today")
+          .optional()
+          .default(90),
+      },
+    ],
+    response: z.unknown(),
+    errors: [
+      {
+        status: 422,
+        description: `Validation Error`,
+        schema: HTTPValidationError,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/api/v1/market/yahoo/quote/:symbol",
+    alias: "get_yahoo_quote_api_v1_market_yahoo_quote__symbol__get",
+    description: `Fetch latest quote for a symbol from Yahoo Finance.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "symbol",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.unknown(),
     errors: [
       {
         status: 422,

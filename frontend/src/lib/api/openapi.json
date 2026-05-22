@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "WealthNest",
-    "version": "v0.0.0-gcaecd48-dirty"
+    "version": "v0.0.0-g1bc8670-dirty"
   },
   "paths": {
     "/api/v1/auth/login": {
@@ -896,6 +896,165 @@
                 "schema": {
                   "$ref": "#/components/schemas/UserSearchResponse"
                 }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/banking/statements/preview": {
+      "post": {
+        "tags": [
+          "Banking"
+        ],
+        "summary": "Preview Bank Statement",
+        "operationId": "preview_bank_statement_api_v1_banking_statements_preview_post",
+        "parameters": [
+          {
+            "name": "bank_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "My Bank",
+              "title": "Bank Name"
+            }
+          },
+          {
+            "name": "account_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "Primary Account",
+              "title": "Account Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_preview_bank_statement_api_v1_banking_statements_preview_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankStatementSummaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/market/yahoo/quote/{symbol}": {
+      "get": {
+        "tags": [
+          "Market Data"
+        ],
+        "summary": "Get Yahoo Quote",
+        "description": "Fetch latest quote for a symbol from Yahoo Finance.",
+        "operationId": "get_yahoo_quote_api_v1_market_yahoo_quote__symbol__get",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Symbol"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/market/yahoo/history/{symbol}": {
+      "get": {
+        "tags": [
+          "Market Data"
+        ],
+        "summary": "Get Yahoo History",
+        "description": "Fetch historical close prices for a symbol from Yahoo Finance.",
+        "operationId": "get_yahoo_history_api_v1_market_yahoo_history__symbol__get",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Symbol"
+            }
+          },
+          {
+            "name": "period_days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 730,
+              "minimum": 7,
+              "description": "Number of days back from today",
+              "default": 90,
+              "title": "Period Days"
+            },
+            "description": "Number of days back from today"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           },
@@ -3235,27 +3394,6 @@
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/brokers/import/sample-reports/coinbase-add-assets": {
-      "get": {
-        "tags": [
-          "BR (Broker)",
-          "BR Import"
-        ],
-        "summary": "Download Coinbase Sample Report",
-        "description": "Download a ready-to-import Coinbase sample CSV.\n\nUseful for quickly testing asset import flow.\nRequires authentication.",
-        "operationId": "download_coinbase_sample_report_api_v1_brokers_import_sample_reports_coinbase_add_assets_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           }
@@ -5827,6 +5965,100 @@
         ],
         "title": "BackwardFillInfo",
         "description": "Backward-fill information when requested date has no data.\n\nUsed by both FX (fx.py) and Asset pricing (asset_source.py) systems\nto indicate when historical data was used instead of exact date match.\n\nAttributes:\n    actual_rate_date: stored as a `date` (accepts ISO string, `date` or `datetime` on input)\n    days_back: Number of days back from requested date\n\nExamples:\n    # Exact match - backward_fill_info is None\n    {\n        \"date\": \"2025-11-05\",\n        \"value\": 1.234,\n        \"backward_fill_info\": None\n    }\n\n    # Backfilled - used data from 3 days earlier\n    {\n        \"date\": \"2025-11-05\",\n        \"value\": 1.234,\n        \"backward_fill_info\": {\n            \"actual_rate_date\": \"2025-11-02\",\n            \"days_back\": 3\n        }\n    }"
+      },
+      "BankCategorySummary": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "total_expense": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Expense"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "total_expense"
+        ],
+        "title": "BankCategorySummary"
+      },
+      "BankStatementSummaryResponse": {
+        "properties": {
+          "bank_name": {
+            "type": "string",
+            "title": "Bank Name"
+          },
+          "account_name": {
+            "type": "string",
+            "title": "Account Name"
+          },
+          "rows_processed": {
+            "type": "integer",
+            "title": "Rows Processed"
+          },
+          "total_expense": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Expense"
+          },
+          "total_income": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Income"
+          },
+          "net_change": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Net Change"
+          },
+          "current_balance": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Balance"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/BankCategorySummary"
+            },
+            "type": "array",
+            "title": "Categories"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bank_name",
+          "account_name",
+          "rows_processed",
+          "total_expense",
+          "total_income",
+          "net_change"
+        ],
+        "title": "BankStatementSummaryResponse"
+      },
+      "Body_preview_bank_statement_api_v1_banking_statements_preview_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "description": "Bank statement in CSV format"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_preview_bank_statement_api_v1_banking_statements_preview_post"
       },
       "Body_upload_file_api_v1_brokers_import_upload_post": {
         "properties": {
@@ -9252,6 +9484,30 @@
             "type": "array",
             "title": "Broker Names",
             "description": "Broker names visible in nominee summary"
+          },
+          "banking_details": {
+            "items": {
+              "$ref": "#/components/schemas/NomineeBankingBrokerRead"
+            },
+            "type": "array",
+            "title": "Banking Details",
+            "description": "Read-only per-broker banking balances"
+          },
+          "account_cash_totals": {
+            "items": {
+              "$ref": "#/components/schemas/NomineeCashBalanceRead"
+            },
+            "type": "array",
+            "title": "Account Cash Totals",
+            "description": "Aggregated cash balances across all visible broker accounts"
+          },
+          "asset_holdings": {
+            "items": {
+              "$ref": "#/components/schemas/NomineeAssetHoldingRead"
+            },
+            "type": "array",
+            "title": "Asset Holdings",
+            "description": "Read-only per-broker asset holdings"
           }
         },
         "type": "object",
@@ -9265,6 +9521,101 @@
         ],
         "title": "NomineeAccessRead",
         "description": "Read-only nominee access payload."
+      },
+      "NomineeAssetHoldingRead": {
+        "properties": {
+          "broker_id": {
+            "type": "integer",
+            "title": "Broker Id",
+            "description": "Broker ID"
+          },
+          "broker_name": {
+            "type": "string",
+            "title": "Broker Name",
+            "description": "Broker name"
+          },
+          "asset_id": {
+            "type": "integer",
+            "title": "Asset Id",
+            "description": "Asset ID"
+          },
+          "asset_name": {
+            "type": "string",
+            "title": "Asset Name",
+            "description": "Asset display name"
+          },
+          "quantity": {
+            "type": "string",
+            "title": "Quantity",
+            "description": "Held quantity as string"
+          },
+          "asset_currency": {
+            "type": "string",
+            "title": "Asset Currency",
+            "description": "Asset currency code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "broker_id",
+          "broker_name",
+          "asset_id",
+          "asset_name",
+          "quantity",
+          "asset_currency"
+        ],
+        "title": "NomineeAssetHoldingRead",
+        "description": "Read-only asset holding row for nominee access."
+      },
+      "NomineeBankingBrokerRead": {
+        "properties": {
+          "broker_id": {
+            "type": "integer",
+            "title": "Broker Id",
+            "description": "Broker ID"
+          },
+          "broker_name": {
+            "type": "string",
+            "title": "Broker Name",
+            "description": "Broker name"
+          },
+          "cash_balances": {
+            "items": {
+              "$ref": "#/components/schemas/NomineeCashBalanceRead"
+            },
+            "type": "array",
+            "title": "Cash Balances",
+            "description": "Cash balances grouped by currency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "broker_id",
+          "broker_name"
+        ],
+        "title": "NomineeBankingBrokerRead",
+        "description": "Read-only banking summary per broker."
+      },
+      "NomineeCashBalanceRead": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "description": "Currency code (ISO 4217)"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount",
+            "description": "Cash balance amount as string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "currency",
+          "amount"
+        ],
+        "title": "NomineeCashBalanceRead",
+        "description": "Read-only cash balance row for nominee access."
       },
       "OldNew_Union_str__NoneType__": {
         "properties": {
